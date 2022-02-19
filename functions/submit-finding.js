@@ -168,7 +168,7 @@ exports.handler = async (event) => {
         repo,
         path: markdownPath,
         message: `${handle} data for issue #${issueId}`,
-        content: body.toString("base64"),
+        content: Buffer.from(body).toString("base64"),
       });
     }
   } catch (error) {
