@@ -121,7 +121,7 @@ exports.handler = async (event) => {
   };
 
   try {
-    const markdownPath = `data/${handle}-${risk}.md`;
+    const markdownPath = `data/${handle}-${risk}-${Date.now()}.md`;
     const qaOrGasSubmissionBody = `This report was too long to be submitted as a GitHub issue. [See the markdown file here](https://github.com/${owner}/${repo}/blob/main/${markdownPath}).`;
     const isQaOrGasSubmission = Boolean(risk === "G" || risk === "1");
 
