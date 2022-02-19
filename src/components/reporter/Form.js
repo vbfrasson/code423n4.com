@@ -272,6 +272,8 @@ const Form = ({ contest, sponsor, repoUrl }) => {
       ...state,
       title: "",
       details: mdTemplate,
+      isQaOrGasFinding: false,
+      risk: "",
       linesOfCode: [
         {
           id: Date.now(),
@@ -294,13 +296,27 @@ const Form = ({ contest, sponsor, repoUrl }) => {
         setStatus(FormStatus.Submitted);
       } else {
         setStatus(FormStatus.Error);
-        const message = await response.json();
-        if (message) {
-          setErrorMessage(message);
+        try {
+          const res = await response.json();
+          updateErrorMessage(res.error);
+        } catch (err) {
+          setErrorMessage("");
         }
       }
     })();
   }, []);
+
+  const updateErrorMessage = (message) => {
+    if (!message) {
+      setErrorMessage("");
+    } else if (message === "Validation Failed") {
+      setErrorMessage(
+        `Error from GitHub: "${message}." Your submission may be too large. If you keep encountering this problem, try sending your submission to submissions@code4rena.com.`
+      );
+    } else {
+      setErrorMessage(message);
+    }
+  };
 
   return (
     <StaticQuery
@@ -452,6 +468,13 @@ const Form = ({ contest, sponsor, repoUrl }) => {
             {status === FormStatus.Error && (
               <div>
                 <p>{errorMessage}</p>
+                <button
+                  className="button cta-button"
+                  type="button"
+                  onClick={() => setStatus(FormStatus.Unsubmitted)}
+                >
+                  Try again
+                </button>
               </div>
             )}
             {status === FormStatus.Submitted && (

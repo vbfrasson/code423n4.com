@@ -17,7 +17,7 @@ exports.handler = async (event) => {
     if (event.httpMethod !== "POST") {
       return {
         statusCode: 405,
-        body: "Method not allowed",
+        body: JSON.stringify({ error: "Method not allowed" }),
         headers: { Allow: "POST" },
       };
     }
@@ -47,7 +47,7 @@ exports.handler = async (event) => {
     if (!handle) {
       return {
         statusCode: 422,
-        body: "Handle is required",
+        body: JSON.stringify({ error: "Handle is required" }),
       };
     }
 
@@ -111,7 +111,7 @@ exports.handler = async (event) => {
       return {
         statusCode: err.response.status,
         body: JSON.stringify({ error: err.response.data.message.toString() }),
-      }
+      };
     }
   } catch (err) {
     return {

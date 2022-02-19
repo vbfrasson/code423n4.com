@@ -26,7 +26,7 @@ exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
-      body: "Method not allowed",
+      body: JSON.stringify({ error: "Method not allowed" }),
       headers: { Allow: "POST" },
     };
   }
@@ -62,24 +62,30 @@ exports.handler = async (event) => {
   ) {
     return {
       statusCode: 422,
-      body:
-        "Email, handle, address, risk, title, body, and labels are required.",
+      body: JSON.stringify({
+        error:
+          "Email, handle, address, risk, title, body, and labels are required.",
+      }),
     };
   }
 
   if (isDangerousRepo(repo)) {
     return {
       statusCode: 400,
-      body:
-        "Repository can only contain alphanumeric characters [a-zA-Z0-9] and hyphens (-).",
+      body: JSON.stringify({
+        error:
+          "Repository can only contain alphanumeric characters [a-zA-Z0-9] and hyphens (-).",
+      }),
     };
   }
 
   if (isDangerousHandle(handle)) {
     return {
       statusCode: 400,
-      body:
-        "Handle can only contain alphanumeric characters [a-zA-Z0-9], underscores (_), and hyphens (-).",
+      body: JSON.stringify({
+        error:
+          "Handle can only contain alphanumeric characters [a-zA-Z0-9], underscores (_), and hyphens (-).",
+      }),
     };
   }
 
@@ -89,14 +95,14 @@ exports.handler = async (event) => {
     if (Date.now() - 5000 > contestEnd) {
       return {
         statusCode: 400,
-        body: "This contest has ended.",
+        body: JSON.stringify({ error: "This contest has ended." }),
       };
     }
   } catch (error) {
     console.error(error);
     return {
       statusCode: 422,
-      body: "Error fetching contest data",
+      body: JSON.stringify({ error: "Error fetching contest data" }),
     };
   }
 
@@ -115,13 +121,17 @@ exports.handler = async (event) => {
   };
 
   try {
+    const markdownPath = `data/${handle}-${risk}.md`;
+    const qaOrGasSubmissionBody = `This report was too long to be submitted as a GitHub issue. [See the markdown file here](https://github.com/${owner}/${repo}/blob/main/${markdownPath}).`;
+    const isQaOrGasSubmission = Boolean(risk === "G" || risk === "1");
+
     const issueResult = await octokit.request(
       "POST /repos/{owner}/{repo}/issues",
       {
         owner,
         repo,
         title,
-        body,
+        body: isQaOrGasSubmission ? qaOrGasSubmissionBody : body,
         labels,
       }
     );
@@ -130,7 +140,6 @@ exports.handler = async (event) => {
     const issueUrl = issueResult.data.html_url;
     const message = `${handle} issue #${issueId}`;
     const path = `data/${handle}-${issueId}.json`;
-
     const fileData = {
       contest,
       handle,
@@ -153,11 +162,32 @@ exports.handler = async (event) => {
       content,
     });
 
+    if (isQaOrGasSubmission) {
+      await octokit.request("PUT /repos/{owner}/{repo}/contents/{path}", {
+        owner,
+        repo,
+        path: markdownPath,
+        message: `${handle} data for issue #${issueId}`,
+        content: body.toString("base64"),
+      });
+    }
+  } catch (error) {
+    return {
+      statusCode: error.response.status,
+      body: JSON.stringify({
+        error: error.response.data.message.toString(),
+      }),
+    };
+  }
+
+  try {
     // Special email used for testing
     if (email === "@@@") {
       return {
         statusCode: 200,
-        body: "Issue posted successfully and confirmation email sent.",
+        body: JSON.stringify({
+          error: "Issue posted successfully and confirmation email sent.",
+        }),
       };
     }
 
@@ -166,7 +196,9 @@ exports.handler = async (event) => {
       .send(emailData)
       .then(() => ({
         statusCode: 200,
-        body: "Issue posted successfully and confirmation email sent.",
+        body: JSON.stringify({
+          error: "Issue posted successfully and confirmation email sent.",
+        }),
       }))
       .catch((error) => ({
         statusCode: 500,
@@ -175,7 +207,9 @@ exports.handler = async (event) => {
   } catch (error) {
     return {
       statusCode: 500,
-      body: "Something went wrong with your submission. Please try again.",
+      body: JSON.stringify({
+        error: "Something went wrong with your submission. Please try again.",
+      }),
     };
   }
 };
