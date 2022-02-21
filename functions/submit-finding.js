@@ -175,7 +175,7 @@ exports.handler = async (event) => {
     return {
       statusCode: error.response.status,
       body: JSON.stringify({
-        error: error.response.data.message.toString(),
+        error: JSON.stringify(error.response.data),
       }),
     };
   }

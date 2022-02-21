@@ -298,25 +298,18 @@ const Form = ({ contest, sponsor, repoUrl }) => {
         setStatus(FormStatus.Error);
         try {
           const res = await response.json();
-          updateErrorMessage(res.error);
+          if (!res.error) {
+            setErrorMessage("");
+          } else {
+            console.error(res.error);
+            setErrorMessage(res.error);
+          }
         } catch (err) {
           setErrorMessage("");
         }
       }
     })();
   }, []);
-
-  const updateErrorMessage = (message) => {
-    if (!message) {
-      setErrorMessage("");
-    } else if (message === "Validation Failed") {
-      setErrorMessage(
-        `Error from GitHub: "${message}." Your submission may be too large. If you keep encountering this problem, try sending your submission to submissions@code4rena.com.`
-      );
-    } else {
-      setErrorMessage(message);
-    }
-  };
 
   return (
     <StaticQuery
