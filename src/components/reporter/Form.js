@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { StaticQuery, graphql } from "gatsby";
+import { StaticQuery, graphql, Link } from "gatsby";
 import clsx from "clsx";
 import Agreement from "../content/Agreement.js";
 import * as styles from "./Form.module.scss";
@@ -272,7 +272,7 @@ const Form = ({ contest, sponsor, repoUrl }) => {
       ...state,
       title: "",
       details: mdTemplate,
-      isQaOrGasFinding: false,
+      qaGasDetails: "",
       risk: "",
       linesOfCode: [
         {
@@ -281,6 +281,7 @@ const Form = ({ contest, sponsor, repoUrl }) => {
         },
       ],
     });
+    setIsQaOrGasFinding(false);
     setStatus(FormStatus.Unsubmitted);
   };
 
@@ -298,18 +299,33 @@ const Form = ({ contest, sponsor, repoUrl }) => {
         setStatus(FormStatus.Error);
         try {
           const res = await response.json();
-          if (!res.error) {
-            setErrorMessage("");
-          } else {
-            console.error(res.error);
-            setErrorMessage(res.error);
-          }
+          updateErrorMessage(res.error);
         } catch (err) {
           setErrorMessage("");
         }
       }
     })();
   }, []);
+
+  const updateErrorMessage = (error) => {
+    if (!error) {
+      setErrorMessage("");
+    } else if (error.message) {
+      if (error.message.includes("sha")) {
+        setErrorMessage(
+          <span>
+            It looks like a report has already been submitted under that
+            username. If you've made a mistake with your submission, please
+            <Link to="/help"> reach out</Link>
+          </span>
+        );
+      } else {
+        setErrorMessage(error.message);
+      }
+    } else {
+      setErrorMessage(error);
+    }
+  };
 
   return (
     <StaticQuery
@@ -459,14 +475,14 @@ const Form = ({ contest, sponsor, repoUrl }) => {
               </form>
             )}
             {status === FormStatus.Error && (
-              <div>
+              <div className="centered-text">
                 <p>{errorMessage}</p>
                 <button
                   className="button cta-button"
                   type="button"
                   onClick={() => setStatus(FormStatus.Unsubmitted)}
                 >
-                  Try again
+                  Back to the form
                 </button>
               </div>
             )}

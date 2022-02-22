@@ -121,9 +121,23 @@ exports.handler = async (event) => {
   };
 
   try {
-    const markdownPath = `data/${handle}-${risk}-${Date.now()}.md`;
+    const riskMap = {
+      1: "QA",
+      G: "Gas",
+    };
+    const markdownPath = `data/${handle}-${riskMap[risk]}-report.md`;
     const qaOrGasSubmissionBody = `See the markdown file with the details of this report [here](https://github.com/${owner}/${repo}/blob/main/${markdownPath}).`;
     const isQaOrGasSubmission = Boolean(risk === "G" || risk === "1");
+
+    if (isQaOrGasSubmission) {
+      await octokit.request("PUT /repos/{owner}/{repo}/contents/{path}", {
+        owner,
+        repo,
+        path: markdownPath,
+        message: `${handle} ${riskMap[risk]} report`,
+        content: Buffer.from(body).toString("base64"),
+      });
+    }
 
     const issueResult = await octokit.request(
       "POST /repos/{owner}/{repo}/issues",
@@ -161,21 +175,11 @@ exports.handler = async (event) => {
       message,
       content,
     });
-
-    if (isQaOrGasSubmission) {
-      await octokit.request("PUT /repos/{owner}/{repo}/contents/{path}", {
-        owner,
-        repo,
-        path: markdownPath,
-        message: `${handle} data for issue #${issueId}`,
-        content: Buffer.from(body).toString("base64"),
-      });
-    }
   } catch (error) {
     return {
       statusCode: error.response.status,
       body: JSON.stringify({
-        error: JSON.stringify(error.response.data),
+        error: error.response.data,
       }),
     };
   }
